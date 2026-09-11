@@ -1,0 +1,122 @@
+WINBUGS 1.4.3 MODELS
+
+MODEL 1: SRSWOR
+
+MODEL
+model
+{
+   tau ~ dgamma(a0,b0)
+   sigma2 <- 1/tau
+   mu ~ dnorm(theta,n0*tau)
+
+   for(i in 1:n) { y[i] ~ dnorm(mu,tau) }
+
+   for(i in 1:Nu) { Yu[i] ~ dnorm(mu,tau) }
+
+   samp.cum[1] <- y[1]
+   for(i in 2:n) { samp.cum[i] <- samp.cum[i-1] + y[i] }
+   sample.total <- samp.cum[n]
+
+   unsamp.cum[1] <- Yu[1]
+   for(i in 2:Nu) { unsamp.cum[i] <- unsamp.cum[i-1] + Yu[i] }
+   unsamp.total <- unsamp.cum[Nu]
+
+   T.pop <- sample.total + unsamp.total
+   Y.bar <- T.pop / N
+}
+
+LOAD DATA
+list(
+N=11,n=10,Nu=1,
+theta=0,n0=0.001,a0=0.001,b0=0.001,
+y=c(12,15,9,22,18,11,14,16,20,13)
+)
+
+INITIAL VALUES
+list(mu=15,tau=0.1,Yu=c(15))
+
+Example output:
+mu ≈ 15.0
+sigma2 ≈ 16.0
+T.pop ≈ 150
+Y.bar ≈ 15.0
+
+
+MODEL 2: APPROX HT
+
+MODEL
+model
+{
+   beta ~ dnorm(0,0.000001)
+
+   for(i in 1:n)
+   {
+      mu.y[i] <- pi[i]*beta
+      prec.y[i] <- 1/(pi[i]*pi[i])
+      y[i] ~ dnorm(mu.y[i],prec.y[i])
+      ht.term[i] <- y[i]/pi[i]
+      resid[i] <- y[i]-mu.y[i]
+   }
+
+   ht.cum[1] <- ht.term[1]
+   for(i in 2:n) { ht.cum[i] <- ht.cum[i-1]+ht.term[i] }
+   HT.estimator <- ht.cum[n]
+
+   resid.cum[1] <- resid[1]
+   for(i in 2:n) { resid.cum[i] <- resid.cum[i-1]+resid[i] }
+   correction <- resid.cum[n]
+
+   T.pop.approx <- HT.estimator + correction
+}
+
+LOAD DATA
+list(
+n=10,
+y=c(12,15,9,22,18,11,14,16,20,13),
+pi=c(0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2)
+)
+
+INITIAL VALUES
+list(beta=15)
+
+Example output:
+beta ≈ 15.0
+HT.estimator = 750
+correction ≈ 0
+T.pop.approx ≈ 750
+
+
+MODEL 3: EXACT HT
+
+MODEL
+model
+{
+   beta ~ dnorm(0,0.000001)
+
+   for(i in 1:n)
+   {
+      mu.y[i] <- pi[i]*beta
+      prec.y[i] <- (1-pi[i])/(pi[i]*pi[i])
+      y[i] ~ dnorm(mu.y[i],prec.y[i])
+      ht.term[i] <- y[i]/pi[i]
+   }
+
+   ht.cum[1] <- ht.term[1]
+   for(i in 2:n) { ht.cum[i] <- ht.cum[i-1]+ht.term[i] }
+
+   HT.exact <- ht.cum[n]
+}
+
+LOAD DATA
+list(
+n=10,
+y=c(12,15,9,22,18,11,14,16,20,13),
+pi=c(0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2)
+)
+
+INITIAL VALUES
+list(beta=15)
+
+Example output:
+beta ≈ 15.0
+HT.exact = 750
